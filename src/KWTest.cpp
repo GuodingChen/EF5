@@ -87,7 +87,7 @@ void InitializeKW()
 
   // Parameter setup
   fullParamSettingsRoute[&gaugeConfigSec] = params;
-  params[PARAM_KINEMATIC_COEM] = 50.0;
+  params[PARAM_KINEMATIC_ALPHA0] = 50.0;
   params[PARAM_KINEMATIC_UNDER] = 0.1;
   params[PARAM_KINEMATIC_LEAKI] = 1.0;
   params[PARAM_KINEMATIC_TH] = -1.0;

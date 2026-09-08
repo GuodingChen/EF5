@@ -117,12 +117,11 @@
           </ol>
 				<li><a name="compile">Compiling EF5</a></li>
 					<p>
-						EF5 makes use of the TIFF and GEOTIFF libraries for use as a raster format. You can obtain binaries or source code and compilation documentation from: </br>
-						Compiling EF5 can be accomplished in 3 steps:<br />
-						1. This step is only needed if you are a developer and are adding files to the Makefile.am <pre class="pree">autoreconf --force --install</pre><br />
-						2. This sets up the system, if you have a path where you would like to install the files then use ./configure --prefix=/path/to/someplace <pre class="pree">./configure</pre><br />
-						3. This step actually compiles ef5 and generates the binary <pre class="pree">make CXXFLAGS="-O3 -fopenmp"</pre><br />
-						Upon successful compilation there will be a binary called "ef5" in the "bin" directory.
+						EF5 uses the TIFF and GEOTIFF libraries for raster data and requires OpenMP and zlib.<br />
+						Configure and compile EF5 with CMake:<br />
+						<pre class="pree">cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel</pre><br />
+						Upon successful compilation, the executable is written to <code>ef5</code> in the project root.
 					</p>
 				<li><a name="config">Configuration File</a></li>
 					<p>The configuration file specifies all of the user changeable settings for EF5. Information in this file controls the input forcings, output options, run methods, etc.</p>

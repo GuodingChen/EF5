@@ -11,32 +11,49 @@ General information about EF5 can be found at [AHWA Lab's Webpage](https://ahwa.
 
 See [EF5's Documentation](https://ef5docs.readthedocs.io/en/latest/) for the EF5 operating manual which describes configuration options.
 
-## Compiling
+## Compiling with CMake
+
+EF5 requires a C++11 compiler, CMake 3.16 or newer, OpenMP, zlib, libtiff,
+and libgeotiff.
 
 ### Linux
 
-Clone the source code from GitHub.   
-1. autoreconf --force --install   
-2. ./configure   
-3. make   
-   This compiles the EF5 application!
+```sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
+```
 
-### OS X
+### macOS
 
-Clone the source code from GitHub. Use the EF5 Xcode project found in the EF5 folder and compile the project.
+Apple Clang requires a separate OpenMP runtime. You can either install
+Homebrew `libomp`, or use Homebrew GCC directly:
 
-### Windows
+```sh
+cmake -S . -B build -DCMAKE_CXX_COMPILER=g++-15 -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
+```
 
-Currently cross-compiling from Linux is the recommended way of generating Windows binaries.
+The executable is written to the project root as `ef5`, next to
+`CMakeLists.txt`.
 
-Clone the source code from GitHub.
+### Optional utilities
 
-1. autoreconf --force --install
-2. For 32-bit Windows installations use ./configure --host=i686-w64-mingw32   
-   For 64-bit Windows installations use ./configure --host=x86_64-w64-mingw32
+The kinematic-wave test and data-conversion utilities are disabled by default.
+Enable them only when needed:
 
-3. make   
-   This compiles the EF5 application!
+```sh
+cmake -S . -B build -DEF5_BUILD_KWTEST=ON -DEF5_BUILD_TOOLS=ON
+cmake --build build --parallel
+```
+
+`TRMMV6Clip` additionally requires HDF4 and JPEG and is controlled by
+`EF5_BUILD_TRMMV6_TOOL`.
+
+### Installation
+
+```sh
+cmake --install build --prefix /desired/install/prefix
+```
 
 ## Contributors
 
@@ -57,4 +74,3 @@ The following people are acknowledged for their contributions to the creation of
 - Race Clark
 - JJ Gourley
 - Yang Hong
-
