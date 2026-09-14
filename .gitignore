@@ -1,0 +1,21 @@
+# Ignore all root-level files by default while keeping directory entries
+/*
+!/*/
+
+# Other root-level directories are placeholders only
+/*/*
+!/*/.gitkeep
+
+# Keep the complete source tree
+!/src/
+!/src/**
+
+# Keep selected root-level project files
+!/.gitignore
+!/CMakeLists.txt
+!/README.md
+!/manual.html
+!/control.txt
+
+# Never track common local metadata
+.DS_Store
