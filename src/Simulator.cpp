@@ -831,9 +831,9 @@ void Simulator::BasinAvg(const char *inputDir)
     {
       continue;
     }
-    sprintf(buffer, "%s/%s", inputDir, ent->d_name);
-    INFO_LOGF("Averaging file %s", buffer);
-    FloatGrid *fileGrid = ReadFloatTifGrid(buffer);
+    const std::string inputFile = std::string(inputDir) + "/" + ent->d_name;
+    INFO_LOGF("Averaging file %s", inputFile.c_str());
+    FloatGrid *fileGrid = ReadFloatTifGrid(inputFile.c_str());
     if (!fileGrid)
     {
       continue;
@@ -897,8 +897,9 @@ void Simulator::BasinAvg(const char *inputDir)
       areaVals[i] = 0.0;
     }
 
-    sprintf(buffer, "%s/%s.avg.tif", outputPath, ent->d_name);
-    gridWriter.WriteGrid(&nodes, &avgVals, buffer, false);
+    const std::string outputFile =
+        std::string(outputPath) + "/" + ent->d_name + ".avg.tif";
+    gridWriter.WriteGrid(&nodes, &avgVals, outputFile.c_str(), false);
     for (long i = numNodes - 1; i >= 0; i--)
     {
       avgVals[i] = 0.0;

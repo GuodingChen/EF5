@@ -1,5 +1,23 @@
 cmake_minimum_required(VERSION 3.16)
 
+# EF5 requires OpenMP. On macOS, the system Apple Clang does not include an
+# OpenMP runtime, so prefer an installed Homebrew GCC when the caller has not
+# selected a compiler explicitly. -DCMAKE_CXX_COMPILER and the CXX environment
+# variable always take precedence over this fallback.
+if(CMAKE_HOST_APPLE
+   AND NOT DEFINED CMAKE_CXX_COMPILER
+   AND "$ENV{CXX}" STREQUAL "")
+  find_program(EF5_HOMEBREW_GXX
+    NAMES g++-16 g++-15 g++-14 g++-13 g++-12
+    HINTS /opt/homebrew/bin /usr/local/bin
+    NO_DEFAULT_PATH)
+  if(EF5_HOMEBREW_GXX)
+    set(CMAKE_CXX_COMPILER "${EF5_HOMEBREW_GXX}" CACHE FILEPATH
+      "C++ compiler selected for EF5 OpenMP support")
+    message(STATUS "EF5: selected Homebrew GCC: ${EF5_HOMEBREW_GXX}")
+  endif()
+endif()
+
 project(EF5 VERSION 1.2.7 LANGUAGES CXX)
 
 include(GNUInstallDirs)

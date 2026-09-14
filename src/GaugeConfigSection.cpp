@@ -7,14 +7,14 @@
 
 std::map<std::string, GaugeConfigSection *> g_gaugeConfigs;
 
-GaugeConfigSection::GaugeConfigSection(char *nameVal) {
+GaugeConfigSection::GaugeConfigSection(const char *nameVal) {
   obsSet = false;
   latSet = false;
   lonSet = false;
   xSet = false;
   ySet = false;
   obsFlowAccumSet = false;
-  strcpy(name, nameVal);
+  snprintf(name, sizeof(name), "%s", nameVal);
   outputTS = true;
   observation[0] = 0;
   wantDA = true;

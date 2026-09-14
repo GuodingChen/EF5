@@ -184,7 +184,7 @@ void WriteFloatTifGrid(const char *file, FloatGrid *grid, const char *artist,
   TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, 1);
   TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, 32);
   TIFFSetField(tif, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP);
-  TIFFSetField(tif, TIFFTAG_COMPRESSION, COMPRESSION_DEFLATE);
+  TIFFSetField(tif, TIFFTAG_COMPRESSION, COMPRESSION_ADOBE_DEFLATE);
 
   TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, grid->numCols);
   TIFFSetField(tif, TIFFTAG_IMAGELENGTH, grid->numRows);

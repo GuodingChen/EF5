@@ -12,7 +12,7 @@
 class GaugeConfigSection : public ConfigSection {
 
 public:
-  GaugeConfigSection(char *nameVal);
+  GaugeConfigSection(const char *nameVal);
   ~GaugeConfigSection();
 
   char *GetName();
