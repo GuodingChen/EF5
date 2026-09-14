@@ -8,6 +8,12 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#ifdef __APPLE__
+#include <sys/proc_info.h>
+extern "C" int proc_pidinfo(int pid, int flavor, uint64_t arg, void *buffer,
+                            int buffersize);
+#endif
+
 namespace ef5
 {
 
@@ -43,7 +49,12 @@ namespace ef5
                                                    std::ceil(approxCoresUsed))
                                              : -1;
 
-            const double maxRssMiB = usage.ru_maxrss / 1024.0; // ru_maxrss in KiB on Linux
+#ifdef __APPLE__
+            // macOS reports ru_maxrss in bytes; Linux reports it in KiB.
+            const double maxRssMiB = usage.ru_maxrss / (1024.0 * 1024.0);
+#else
+            const double maxRssMiB = usage.ru_maxrss / 1024.0;
+#endif
             const double currentRssMiB = readCurrentRssMiB();
 
             std::printf("\n===== Runtime resource summary =====\n");
@@ -77,6 +88,16 @@ namespace ef5
 
         static double readCurrentRssMiB()
         {
+#ifdef __APPLE__
+            proc_taskinfo taskInfo;
+            if (proc_pidinfo(getpid(), PROC_PIDTASKINFO, 0, &taskInfo,
+                             sizeof(taskInfo)) == sizeof(taskInfo))
+            {
+                return static_cast<double>(taskInfo.pti_resident_size) /
+                       (1024.0 * 1024.0);
+            }
+            return -1.0;
+#else
             long long kib = readCurrentRssKiBFromProcStatus();
             if (kib >= 0)
                 return static_cast<double>(kib) / 1024.0;
@@ -84,6 +105,7 @@ namespace ef5
             if (kib2 >= 0)
                 return static_cast<double>(kib2) / 1024.0;
             return -1.0;
+#endif
         }
 
         static long long readCurrentRssKiBFromProcStatus()
