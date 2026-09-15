@@ -44,10 +44,10 @@ outputts=true
 gauge=0
 
 
-[CrestParamSet MyCRESTPAR]
+[CrestParamSet yueheCrest]
 
 wm_grid=./parameters/wm_crest.tif
-im_grid=./parameters/im_crest.tif
+im_grid=./parameters/im_crest_percent.tif
 fc_grid=./parameters/ksat_crest.tif
 
 gauge=0
@@ -57,11 +57,11 @@ b=1.0
 im=0.01
 ke=1.0
 fc=1.00
-iwu=0.0
+iwu=50.0
 
 
 
-[kwparamset MyKWPAR]
+[kwparamset yueheKw]
 
 gauge=0
 alpha=1.0
@@ -71,6 +71,56 @@ under=0.001
 leaki=0.03
 th=12.0
 isu=0.0
+
+
+[CrestCaliParams yueheCrestCali]
+gauge=0
+objective=NSCE
+dream_ndraw=20000
+wm=0.5,2.0
+b=0.05,10
+im=0.005,0.02
+ke=0.001,1
+fc=0.2,5.0
+iwu=0.0,100.0
+
+[kwcaliparams yueheKwCali]
+gauge=0
+
+under=0.0001,0.00010001
+leaki=0.02,1.0
+th=10,10.00001
+isu=0.0,0.000001
+alpha=0.05,10
+beta=0.05,10
+alpha0=0.05,10
+
+
+[Task Calibration]
+STYLE=CALI_DREAM
+
+MODEL=CREST
+ROUTING=KW
+BASIN=0
+PRECIP=IMERG
+PET=CLIMO
+
+OUTPUT=calibration
+
+defaultparamsgauge=0
+
+# 普通参数集仍然必须提供
+PARAM_SET=yueheCrest
+ROUTING_PARAM_SET=yueheKw
+
+# 指向参数搜索范围
+CALI_PARAM=yueheCrestCali
+ROUTING_CALI_PARAM=yueheKwCali
+
+TIMESTEP=60u
+TIME_BEGIN=201206270000
+TIME_WARMEND=201207020000
+TIME_END=201207100000
 
 
 
@@ -95,9 +145,9 @@ OUTPUT=./results/
 # OUTPUT_GRIDS=STREAMFLOW|SOILMOISTURE|MAXUNITSTREAMFLOW|MAXSTREAMFLOW|PRECIPACCUM
 
 defaultparamsgauge=0
-PARAM_SET=MyCRESTPAR
+PARAM_SET=yueheCrest
 
-ROUTING_PARAM_Set=MyKWPAR
+ROUTING_PARAM_Set=yueheKw
 
 TIMESTEP=60u
 
@@ -106,6 +156,13 @@ TIME_BEGIN=201206270000
 TIME_END=201207100000
 
 
+
+
+
+
+
+
 [Execute]
 
+# task=Calibration
 task=Simulation
