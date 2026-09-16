@@ -3,7 +3,11 @@
 #include "Messages.h"
 #include "geotiffio.h"
 #include "xtiffio.h"
+#include <cstdarg>
+#include <cerrno>
+#include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <limits>
 #include <stdlib.h>
 
@@ -19,6 +23,17 @@ static const TIFFFieldInfo xtiffFieldInfo[] = {
 static TIFFExtendProc TIFFParentExtender = NULL;
 static void TIFFExtenderInit();
 static void TIFFDefaultDirectory(TIFF *tif);
+
+static void TifFatal(const char *file, const char *format, ...) {
+  char reason[512];
+  va_list args;
+  va_start(args, format);
+  vsnprintf(reason, sizeof(reason), format, args);
+  va_end(args);
+  ERROR_LOGF("Invalid GeoTIFF \"%s\": %s Model stopped.", file, reason);
+  fflush(stdout);
+  exit(EXIT_FAILURE);
+}
 
 static void TIFFExtenderInit() {
   static int first_time = 1;
@@ -61,46 +76,90 @@ FloatGrid *ReadFloatTifGrid(const char *file, FloatGrid *incGrid) {
   TIFF *tif = NULL;
   GTIF *gtif = NULL;
 
+  errno = 0;
   tif = XTIFFOpen(file, "r");
   if (!tif) {
-    return NULL;
+    if (errno == ENOENT) {
+      return NULL; // Keep the existing missing-forcing behavior.
+    }
+    if (errno) {
+      TifFatal(file, "cannot open as a TIFF (%s).", strerror(errno));
+    }
+    TifFatal(file, "file exists but cannot be opened as a TIFF.");
   }
 
   gtif = GTIFNew(tif);
   if (!gtif) {
-    XTIFFClose(tif);
-    return NULL;
+    TifFatal(file, "GeoTIFF metadata cannot be read.");
   }
 
-  unsigned short sampleFormat, samplesPerPixel, bitsPerSample;
-  TIFFGetField(tif, TIFFTAG_SAMPLESPERPIXEL, &samplesPerPixel);
-  TIFFGetField(tif, TIFFTAG_BITSPERSAMPLE, &bitsPerSample);
-  TIFFGetField(tif, TIFFTAG_SAMPLEFORMAT, &sampleFormat);
+  unsigned short sampleFormat = 0, samplesPerPixel = 0, bitsPerSample = 0;
+  unsigned short orientation = ORIENTATION_TOPLEFT;
+  TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL, &samplesPerPixel);
+  TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE, &bitsPerSample);
+  TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLEFORMAT, &sampleFormat);
+  TIFFGetFieldDefaulted(tif, TIFFTAG_ORIENTATION, &orientation);
 
   if (sampleFormat != SAMPLEFORMAT_IEEEFP || bitsPerSample != 32 ||
       samplesPerPixel != 1) {
-    WARNING_LOGF("%s is not a supported Float32 GeoTiff", file);
-    GTIFFree(gtif);
-    XTIFFClose(tif);
-    return NULL;
+    TifFatal(file,
+             "expected one Float32 band (bands=%u, bits=%u, format=%u).",
+             samplesPerPixel, bitsPerSample, sampleFormat);
   }
 
   if (TIFFIsTiled(tif)) {
-    WARNING_LOGF("%s is an unsupported tiled GeoTiff", file);
-    GTIFFree(gtif);
-    XTIFFClose(tif);
-    return NULL;
+    TifFatal(file, "tiled storage is unsupported; use stripped storage.");
   }
 
-  int width, height;
-  TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &width);
-  TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &height);
+  if (orientation != ORIENTATION_TOPLEFT) {
+    TifFatal(file, "unsupported orientation %u; expected top-left (1).",
+             orientation);
+  }
 
-  short tiepointsize, pixscalesize;
-  double *tiepoints; //[6];
-  double *pixscale;  //[3];
-  TIFFGetField(tif, TIFFTAG_GEOTIEPOINTS, &tiepointsize, &tiepoints);
-  TIFFGetField(tif, TIFFTAG_GEOPIXELSCALE, &pixscalesize, &pixscale);
+  unsigned short rasterType = RasterPixelIsArea;
+  if (GTIFKeyGet(gtif, GTRasterTypeGeoKey, &rasterType, 0, 1) &&
+      rasterType != RasterPixelIsArea) {
+    TifFatal(file, "unsupported raster type %u; expected PixelIsArea (1).",
+             rasterType);
+  }
+
+  unsigned short matrixSize = 0;
+  double *matrix = NULL;
+  if (TIFFGetField(tif, TIFFTAG_GEOTRANSMATRIX, &matrixSize, &matrix)) {
+    TifFatal(file, "rotated or skewed rasters are unsupported.");
+  }
+
+  int width = 0, height = 0;
+  if (!TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &width) ||
+      !TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &height) || width <= 0 ||
+      height <= 0) {
+    TifFatal(file, "image width or height is missing or invalid.");
+  }
+
+  short tiepointsize = 0, pixscalesize = 0;
+  double *tiepoints = NULL;
+  double *pixscale = NULL;
+  if (!TIFFGetField(tif, TIFFTAG_GEOTIEPOINTS, &tiepointsize, &tiepoints) ||
+      tiepointsize < 6 || !tiepoints) {
+    TifFatal(file, "ModelTiepointTag is missing or invalid.");
+  }
+  for (int i = 0; i < 5; i++) {
+    if (!std::isfinite(tiepoints[i])) {
+      TifFatal(file, "ModelTiepointTag contains NaN or infinity.");
+    }
+  }
+  if (!TIFFGetField(tif, TIFFTAG_GEOPIXELSCALE, &pixscalesize, &pixscale) ||
+      pixscalesize < 2 || !pixscale || !std::isfinite(pixscale[0]) ||
+      !std::isfinite(pixscale[1]) || pixscale[0] <= 0.0 ||
+      pixscale[1] <= 0.0) {
+    TifFatal(file, "ModelPixelScaleTag is missing or invalid.");
+  }
+  const double scaleTolerance =
+      std::fmax(pixscale[0], pixscale[1]) * 1.0e-9;
+  if (std::fabs(pixscale[0] - pixscale[1]) > scaleTolerance) {
+    TifFatal(file, "non-square pixels are unsupported (x=%g, y=%g).",
+             pixscale[0], pixscale[1]);
+  }
 
   if (!grid || grid->numCols != width || grid->numRows != height) {
     if (grid) {
@@ -133,15 +192,19 @@ FloatGrid *ReadFloatTifGrid(const char *file, FloatGrid *incGrid) {
 
   char *noData = NULL;
   if (TIFFGetField(tif, TIFFTAG_GDAL_NODATA, &noData)) {
-    grid->noData = atof(noData);
+    char extra = 0;
+    if (!noData || sscanf(noData, "%f %c", &grid->noData, &extra) != 1 ||
+        !std::isfinite(grid->noData)) {
+      TifFatal(file, "invalid GDAL_NODATA value.");
+    }
   } else {
     grid->noData = std::numeric_limits<float>::quiet_NaN();
   }
   grid->cellSize = pixscale[0];
-  grid->extent.top = tiepoints[4];
-  grid->extent.left = tiepoints[3];
-  grid->extent.bottom = tiepoints[4] - (pixscale[1] * float(height));
-  grid->extent.right = tiepoints[3] + (pixscale[0] * float(width));
+  grid->extent.top = tiepoints[4] + tiepoints[1] * pixscale[1];
+  grid->extent.left = tiepoints[3] - tiepoints[0] * pixscale[0];
+  grid->extent.bottom = grid->extent.top - pixscale[1] * float(height);
+  grid->extent.right = grid->extent.left + pixscale[0] * float(width);
 
   GTIFKeyGet(gtif, GTModelTypeGeoKey, &grid->modelType, 0, 1);
   GTIFKeyGet(gtif, GeographicTypeGeoKey, &grid->geographicType, 0, 1);
@@ -149,9 +212,13 @@ FloatGrid *ReadFloatTifGrid(const char *file, FloatGrid *incGrid) {
   grid->geoSet = true;
 
   for (long i = 0; i < grid->numRows; i++) {
-    if (TIFFReadScanline(tif, grid->data[i], (unsigned int)i, 1) == -1) {
-      for (long j = 0; j < grid->numCols; j++) {
-        grid->data[i][j] = grid->noData;
+    // A one-band TIFF always uses sample 0, for both CONTIG and SEPARATE.
+    if (TIFFReadScanline(tif, grid->data[i], (unsigned int)i, 0) == -1) {
+      TifFatal(file, "failed to read row %ld.", i);
+    }
+    for (long j = 0; j < grid->numCols; j++) {
+      if (!std::isfinite(grid->data[i][j])) {
+        TifFatal(file, "cell (%ld, %ld) is NaN or infinite.", j, i);
       }
     }
   }
