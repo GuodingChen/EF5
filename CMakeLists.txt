@@ -20,6 +20,20 @@ endif()
 
 project(EF5 VERSION 1.2.7 LANGUAGES CXX)
 
+set(EF5_BUILD_MODE "Debug" CACHE STRING
+  "Build mode: Debug or Release")
+set_property(CACHE EF5_BUILD_MODE PROPERTY STRINGS Debug Release)
+if(NOT EF5_BUILD_MODE STREQUAL "Debug" AND
+   NOT EF5_BUILD_MODE STREQUAL "Release")
+  message(FATAL_ERROR "EF5_BUILD_MODE must be Debug or Release")
+endif()
+if(CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_CONFIGURATION_TYPES "${EF5_BUILD_MODE}" CACHE STRING
+    "Available build configurations" FORCE)
+else()
+  set(CMAKE_BUILD_TYPE "${EF5_BUILD_MODE}" CACHE STRING "Build type" FORCE)
+endif()
+
 include(GNUInstallDirs)
 include(FindPackageHandleStandardArgs)
 

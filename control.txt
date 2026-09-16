@@ -55,7 +55,7 @@ gauge=0
 wm=1.00
 b=1.0
 im=0.01
-ke=1.0
+ke=2.5
 fc=1.00
 iwu=50.0
 
@@ -64,9 +64,10 @@ iwu=50.0
 [kwparamset yueheKw]
 
 gauge=0
-alpha=1.0
-alpha0=1.0
-beta=1.0
+alpha=0.513155
+# alpha=0.7
+alpha0=0.996646
+beta=0.996294
 under=0.001
 leaki=0.03
 th=12.0
@@ -76,24 +77,26 @@ isu=0.0
 [CrestCaliParams yueheCrestCali]
 gauge=0
 objective=NSCE
-dream_ndraw=20000
-wm=0.5,2.0
-b=0.05,10
-im=0.005,0.02
-ke=0.001,1
-fc=0.2,5.0
-iwu=0.0,100.0
+dream_ndraw=130
+wm=0.99,1.01
+b=0.99,1.01
+im=0.0099,0.0101
+ke=0.99,1.01
+fc=0.99,1.01
+iwu=49.9,50.1
+
 
 [kwcaliparams yueheKwCali]
 gauge=0
 
-under=0.0001,0.00010001
-leaki=0.02,1.0
-th=10,10.00001
+under=0.00099,0.00101
+leaki=0.029,0.031
+th=11.99,12.01
 isu=0.0,0.000001
-alpha=0.05,10
-beta=0.05,10
-alpha0=0.05,10
+
+alpha=0.48,0.58
+beta=0.99,1.01
+alpha0=0.99,1.01
 
 
 [Task Calibration]
