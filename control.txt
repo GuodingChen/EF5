@@ -74,6 +74,14 @@ th=12.0
 isu=0.0
 
 
+[simpleinundationparamset yueheFim]
+gauge=0
+alpha=0.1
+beta=0.5
+th_fim=12.0
+
+
+
 [CrestCaliParams yueheCrestCali]
 gauge=0
 objective=NSCE
@@ -132,37 +140,33 @@ TIME_END=201207100000
 STYLE=SIMU
 
 MODEL=crest
+PARAM_SET=yueheCrest
 
 ROUTING=KW
+ROUTING_PARAM_Set=yueheKw
+
+INUNDATION=SIMPLEINUNDATION
+INUNDATION_PARAM_SET=yueheFim
 
 BASIN=0
+defaultparamsgauge=0
 
 PRECIP=IMERG
-
 PET=CLIMO
+
 
 OUTPUT=./results/
 
 # output variable. check the GriddedOutput.cpp 
 # OUTPUT_GRIDS=MAXUNITSTREAMFLOW|MAXSTREAMFLOW|PRECIPACCUM|
 # OUTPUT_GRIDS=STREAMFLOW|SOILMOISTURE|MAXUNITSTREAMFLOW|MAXSTREAMFLOW|PRECIPACCUM
-
-defaultparamsgauge=0
-PARAM_SET=yueheCrest
-
-ROUTING_PARAM_Set=yueheKw
+OUTPUT_GRIDS=INUNDATION|MAXINUNDATION|HANDCATCHMENT|STREAMFLOW
 
 TIMESTEP=60u
 
 TIME_BEGIN=201206270000
 
 TIME_END=201207100000
-
-
-
-
-
-
 
 
 [Execute]
